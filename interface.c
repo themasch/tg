@@ -2383,7 +2383,7 @@ void print_user_name (struct in_ev *ev, tgl_peer_id_t id, tgl_peer_t *U) {
     } else if (!U->user.last_name || !strlen (U->user.last_name)) {
       mprintf (ev, "%s", U->user.first_name);
     } else {
-      mprintf (ev, "%s %s", U->user.first_name, U->user.last_name); 
+      mprintf (ev, "%s_%s", U->user.first_name, U->user.last_name);
     }
     if (U->flags & (FLAG_USER_SELF | FLAG_USER_CONTACT)) {
       mpop_color (ev);
@@ -2425,14 +2425,27 @@ void print_encr_chat_name_full (struct in_ev *ev, tgl_peer_id_t id, tgl_peer_t *
   mpop_color (ev);
 }
 
-static char *monthes[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+//static char *monthes[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 void print_date (struct in_ev *ev, long t) {
   struct tm *tm = localtime ((void *)&t);
-  if (time (0) - t < 12 * 60 * 60) {
+  int minutes = (int)(timezone / -60 ) + (tm->tm_isdst > 0 ? 60 : 0);
+  mprintf(
+    ev,
+    "[%04d-%02d-%02d %02d:%02d:%02d %+03d%02d]",
+    tm->tm_year + 1900,
+    tm->tm_mon + 1,
+    tm->tm_mday,
+    tm->tm_hour,
+    tm->tm_min,
+    tm->tm_sec,
+    (int)minutes / 60,
+    (int)minutes % 60
+  );
+  /*if (time (0) - t < 12 * 60 * 60) {
     mprintf (ev, "[%02d:%02d] ", tm->tm_hour, tm->tm_min);
   } else {
     mprintf (ev, "[%02d %s]", tm->tm_mday, monthes[tm->tm_mon]);
-  }
+  }*/
 }
 
 void print_date_full (struct in_ev *ev, long t) {
@@ -2458,9 +2471,9 @@ void print_service_message (struct in_ev *ev, struct tgl_message *M) {
     assert (tgl_get_peer_type (M->to_id) == TGL_PEER_ENCR_CHAT);
     print_encr_chat_name (ev, M->to_id, tgl_peer_get (M->to_id));
   }
-  mprintf (ev, " ");
+  mprintf (ev, " @ ");
   print_user_name (ev, M->from_id, tgl_peer_get (M->from_id));
- 
+
   switch (M->action.type) {
   case tgl_message_action_none:
     mprintf (ev, "\n");
@@ -2620,7 +2633,7 @@ void print_message (struct in_ev *ev, struct tgl_message *M) {
     mpop_color (ev);
     mprintf (ev, " ");
     print_chat_name (ev, M->to_id, tgl_peer_get (M->to_id));
-    mprintf (ev, " ");
+    mprintf (ev, " @ ");
     print_user_name (ev, M->from_id, tgl_peer_get (M->from_id));
     if ((tgl_get_peer_type (M->from_id) == TGL_PEER_USER) && (tgl_get_peer_id (M->from_id) == tgl_state.our_id)) {
       mpush_color (ev, COLOR_GREEN);
